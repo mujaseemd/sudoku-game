@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Responsive Sudoku App</title>
+<style>
+  /* Reset */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000080; /* Navy blue background */
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  #app {
+    background: #1e1e2f;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 450px;
+    width: 100%;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  }
+  h1 {
+    margin: 0 0 1rem;
+    font-weight: 700;
+    font-size: 2rem;
+    text-align: center;
+    user-select: none;
+    letter-spacing: 2px;
+  }
+
+  #difficulty-container {
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  #difficulty-container label {
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+  }
+  #difficulty-container input[type="radio"] {
+    margin-right: 0.3rem;
+    cursor: pointer;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    gap: 2px;
+    user-select: none;
+  }
+  .cell {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #2a2a40;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 1;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #a0a0bb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+  }
+  .cell input {
+    all: unset;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    cursor: pointer;
+  }
+  .cell input:focus {
+    outline: none;
+    color: #fff;
+    background-color: #414165;
+    border-radius: 4px;
+  }
+  .cell.prefilled input {
+    color: #76e2b3;
+    cursor: default;
+    font-weight: 700;
+  }
+  /* Bold borders for 3x3 subgrids */
+  .cell:nth-child(3n) {
+    border-right: 2.5px solid #555574;
+  }
+  .cell:nth-child(n+19):nth-child(-n+27),
+  .cell:nth-child(n+46):nth-child(-n+54) {
+    border-bottom: 2.5px solid #555574;
+  }
+  /* Top and left borders thick */
+  .cell:nth-child(1),
+  .cell:nth-child(10),
+  .cell:nth-child(19),
+  .cell:nth-child(28),
+  .cell:nth-child(37),
+  .cell:nth-child(46),
+  .cell:nth-child(55),
+  .cell:nth-child(64),
+  .cell:nth-child(73) {
+    border-left: 2.5px solid #555574;
+  }
+  .cell:nth-child(-n+9) {
+    border-top: 2.5px solid #555574;
+  }
+  .cell:nth-child(27),
+  .cell:nth-child(54),
+  .cell:nth-child(81) {
+    border-right: 2.5px solid #555574;
+  }
+  .cell:nth-child(n+73) {
+    border-bottom: 2.5px solid #555574;
+  }
+  /* Invalid input styling */
+  .cell.invalid input {
+    background-color: #ff616d44;
+    color: #ff4757;
+    font-weight: 700;
+  }
+
+  /* Controls */
+  #controls {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+  }
+  button {
+    all: unset;
+    background: #667eea;
+    color: #fff;
+    font-weight: 700;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px #5264d3;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #5a71d7;
+  }
+  button:active {
+    background: #4d5fbf;
+  }
+  button:disabled {
+    background: #444466;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  #message {
+    margin-top: 1rem;
+    font-weight: 600;
+    text-align: center;
+    min-height: 1.2rem;
+  }
+  @media (max-width: 600px) {
+    #app {
+      max-width: 100vw;
+      border-radius: 0;
+      height: 100vh;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: start;
+      align-items: center;
+      overflow-y: auto;
+    }
+    #difficulty-container {
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .grid {
+      gap: 1.5px;
+    }
+    .cell {
+      font-size: 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <h1>Sudoku</h1>
+
+    <div id="difficulty-container" role="radiogroup" aria-label="Select difficulty">
+      <label>
+        <input type="radio" name="difficulty" value="easy" />
+        Easy
+      </label>
+      <label>
+        <input type="radio" name="difficulty" value="medium" checked />
+        Medium
+      </label>
+      <label>
+        <input type="radio" name="difficulty" value="hard" />
+        Hard
+      </label>
+    </div>
+
+    <div class="grid" aria-label="Sudoku grid" role="grid"></div>
+    <div id="controls">
+      <button id="check">Check</button>
+      <button id="reset">Reset</button>
+      <button id="newGame">New Game</button>
+    </div>
+    <div id="message" aria-live="polite"></div>
+  </div>
+<script>
+(() => {
+  const grid = document.querySelector('.grid');
+  const message = document.getElementById('message');
+  const checkBtn = document.getElementById('check');
+  const resetBtn = document.getElementById('reset');
+  const newGameBtn = document.getElementById('newGame');
+  const difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
+
+  let puzzle, solution, cells;
+  let mistakes = 0;
+  const MAX_MISTAKES = 3;
+
+  // Sudoku solver backtracking
+  function solve(board) {
+    for (let r=0; r<9; r++) {
+      for (let c=0; c<9; c++) {
+        if (board[r][c] === 0) {
+          const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+          for (const n of nums) {
+            if (valid(board, r, c, n)) {
+              board[r][c] = n;
+              if (solve(board)) return true;
+              board[r][c] = 0;
+            }
+          }
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // Check if n valid at row r col c
+  function valid(board, r, c, n) {
+    for (let i=0; i<9; i++) {
+      if (board[r][i] === n || board[i][c] === n) return false;
+      const br = 3*Math.floor(r/3), bc = 3*Math.floor(c/3);
+      if (board[br + Math.floor(i/3)][bc + i%3] === n) return false;
+    }
+    return true;
+  }
+
+  // Shuffle array helper
+  function shuffle(arr) {
+    let a = arr.slice();
+    for (let i=a.length-1; i>0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Generate complete solution board
+  function generateSolvedBoard() {
+    const board = Array(9).fill().map(()=>Array(9).fill(0));
+    solve(board);
+    return board;
+  }
+
+  // Generate puzzle by removing cells according to difficulty
+  function generatePuzzle(board, difficulty) {
+    const puzzle = board.map(r => r.slice());
+    // Set clues count by difficulty
+    // Easy: 55 clues, Medium: 40 clues, Hard: 25 clues
+    let cluesCount;
+    if (difficulty === 'easy') cluesCount = 55;
+    else if (difficulty === 'hard') cluesCount = 25;
+    else cluesCount = 40;
+
+    let cellsToRemove = 81 - cluesCount;
+    while (cellsToRemove > 0) {
+      let r = Math.floor(Math.random()*9);
+      let c = Math.floor(Math.random()*9);
+      if (puzzle[r][c] !== 0) {
+        puzzle[r][c] = 0;
+        cellsToRemove--;
+      }
+    }
+    return puzzle;
+  }
+
+  // Create Sudoku grid cells
+  function createGrid() {
+    grid.innerHTML = '';
+    cells = [];
+    for (let i=0; i<81; i++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      cell.setAttribute('role', 'gridcell');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 1;
+      input.pattern = '[1-9]';
+      input.autocomplete = 'off';
+      input.inputMode = 'numeric';
+      input.setAttribute('aria-label', `Cell ${i+1}`);
+
+      // On input, validate this cell's input immediately
+      input.addEventListener('input', e => {
+        if (mistakes >= MAX_MISTAKES) {
+          // Disable further input after failure
+          e.target.value = '';
+          return;
+        }
+        let val = e.target.value;
+        if(!/^[1-9]$/.test(val)) {
+          e.target.value = '';
+          clearInvalid(cell);
+          return;
+        }
+        clearInvalid(cell);
+
+        // Check correctness of this input
+        const idx = cells.findIndex(c => c.input === e.target);
+        if (idx === -1) return;
+        const r = Math.floor(idx/9);
+        const c = idx % 9;
+        let num = parseInt(val,10);
+        if (num !== solution[r][c]) {
+          setInvalid(cell);
+          mistakes++;
+          if (mistakes >= MAX_MISTAKES) {
+            message.textContent = 'You failed! Too many mistakes.';
+            message.style.color = '#ff4757';
+            disableInputs();
+            checkBtn.disabled = true;
+          } else {
+            message.textContent = `Mistakes made: ${mistakes}/${MAX_MISTAKES}`;
+            message.style.color = '#ff6b6b';
+          }
+        } else {
+          // Correct input, if previously invalid, decrement mistakes if desired
+          // For simplicity, do not decrease mistakes once increased
+          clearInvalid(cell);
+          if(mistakes < MAX_MISTAKES) {
+            message.textContent = '';
+          }
+        }
+      });
+
+      input.addEventListener('keydown', e => {
+        if (
+          e.key === 'Backspace' || e.key === 'Delete' ||
+          e.key === 'Tab' || e.key.startsWith('Arrow')
+        ) return;
+        if (!/[1-9]/.test(e.key) || e.ctrlKey || e.metaKey) e.preventDefault();
+      });
+
+      cell.appendChild(input);
+      grid.appendChild(cell);
+      cells.push({cell, input});
+    }
+  }
+
+  // Clear invalid styling
+  function clearInvalid(cell) {
+    cell.classList.remove('invalid');
+  }
+  // Mark invalid cell
+  function setInvalid(cell) {
+    cell.classList.add('invalid');
+  }
+  // Disable all input cells
+  function disableInputs() {
+    cells.forEach(({input}) => {
+      input.disabled = true;
+    });
+  }
+
+  // Load puzzle into grid
+  function loadPuzzle(puzzleBoard) {
+    puzzle = puzzleBoard.map(r => r.slice());
+    solution = puzzleBoard.map(r => r.slice());
+    solve(solution);
+    cells.forEach(({cell, input}, idx) => {
+      let r = Math.floor(idx/9);
+      let c = idx % 9;
+      let val = puzzle[r][c];
+      input.value = val === 0 ? '' : val;
+      input.disabled = val !== 0;
+      if (val !== 0) cell.classList.add('prefilled');
+      else cell.classList.remove('prefilled');
+      clearInvalid(cell);
+      input.disabled = val !== 0;
+    });
+    mistakes = 0;
+    message.textContent = '';
+    checkBtn.disabled = false;
+  }
+
+  // Validate user inputs against solution
+  function validate() {
+    if (mistakes >= MAX_MISTAKES) return;
+    let allFilled = true;
+    let errorsInThisCheck = 0;
+    cells.forEach(({cell, input}, idx) => {
+      let r = Math.floor(idx/9);
+      let c = idx % 9;
+      let val = parseInt(input.value, 10);
+      clearInvalid(cell);
+      if (input.value === '') allFilled = false;
+      else if (val !== solution[r][c]) {
+        setInvalid(cell);
+        errorsInThisCheck++;
+      }
+    });
+    if (errorsInThisCheck > 0) {
+      mistakes += errorsInThisCheck;
+      if (mistakes >= MAX_MISTAKES) {
+        message.textContent = 'You failed! Too many mistakes.';
+        message.style.color = '#ff4757';
+        disableInputs();
+        checkBtn.disabled = true;
+        return false;
+      } else {
+        message.textContent = `There are mistakes. Mistakes made: ${mistakes}/${MAX_MISTAKES}`;
+        message.style.color = '#ff6b6b';
+        return false;
+      }
+    }
+    if (!allFilled) {
+      message.textContent = 'Keep going! Fill all cells.';
+      message.style.color = '#FFD966';
+      return false;
+    }
+    message.textContent = 'Congratulations! You solved the puzzle!';
+    message.style.color = '#76e2b3';
+    disableInputs();
+    checkBtn.disabled = true;
+    return true;
+  }
+
+  // Reset input cells
+  function resetPuzzle() {
+    if (mistakes >= MAX_MISTAKES) {
+      loadPuzzle(puzzle);
+      return;
+    }
+    cells.forEach(({cell, input}) => {
+      if (!input.disabled) {
+        input.value = '';
+        clearInvalid(cell);
+      }
+    });
+    mistakes = 0;
+    message.textContent = '';
+    checkBtn.disabled = false;
+  }
+
+  function getSelectedDifficulty() {
+    for (const radio of difficultyRadios) {
+      if (radio.checked) return radio.value;
+    }
+    return 'medium';
+  }
+
+  // New game: generate solved board, generate puzzle by difficulty, load
+  function newGame() {
+    const difficulty = getSelectedDifficulty();
+    const solvedBoard = generateSolvedBoard();
+    const puzzleBoard = generatePuzzle(solvedBoard, difficulty);
+    loadPuzzle(puzzleBoard);
+  }
+
+  createGrid();
+  newGame();
+
+  checkBtn.addEventListener('click', validate);
+  resetBtn.addEventListener('click', resetPuzzle);
+  newGameBtn.addEventListener('click', newGame);
+
+})();
+</script>
+</body>
+</html>
+
