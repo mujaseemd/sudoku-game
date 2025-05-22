@@ -1,4 +1,4 @@
-# Responsive Sudoku App
+# Sudoku App
 
 This is a fully functional, visually appealing, responsive Sudoku web application implemented as a single HTML file with inline CSS and JavaScript.
 
